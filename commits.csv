@@ -1,0 +1,735 @@
+Author,Date,Message
+David Wrighton,24/01/2026 4:18:23 am,Fix token memory ordering issue reading from the MethodDef and FieldDef token tables (#123557)
+
+We have logic which loads a typedef  and if the typedef is loaded then
+we assume the method can be loaded via lookup in the MethodDef/FieldDef
+token map tables. HOWEVER  what this boils down to is we do a load from
+the TypeDef table  and if that succeeds we will do a load from the
+FieldDef/MethodDef token map tables  but that second load is done
+without an explicit memory barrier. Unfortunately  through the wonder of
+memory ordering behavior  its legal (and not actually all that uncommon)
+for the CPU to do the load from the FieldDef/MethodDef tables BEFORE it
+actually loads from the TypeDef table. So what can happen is that the
+fielddef table read can happen  then the typedef table read can happen 
+then the CPU does the if check to see if its ok to do the fielddef table
+read  then we use the value from the fielddef table read which happened
+earlier.
+
+This fix should fix that problem by using a VolatileLoad for all reads
+from the lookup maps. This is slightly slower but avoids the extremely
+easy to mess up dependency ordering rules.
+
+Fixes #120754
+
+---------
+
+Co-authored-by: Copilot <175728472+Copilot@users.noreply.github.com>
+Co-authored-by: Aaron R Robinson <arobins@microsoft.com>
+Henrik,24/01/2026 3:29:10 am,Array.FindAll improvements (#120336)
+
+Now a small amount of matches are stack allocated and the array is only optionally allocated.
+
+---------
+
+Co-authored-by: Tarek Mahmoud Sayed <10833894+tarekgh@users.noreply.github.com>
+Co-authored-by: Jan Kotas <jkotas@microsoft.com>
+Michal Strehovský,24/01/2026 2:08:00 am,Do not try obtaining canonical dictionaries in `VirtualDispatchCellGenericLookupResult` (#123512)
+
+We broke outerloops in #122012. Looks like the outerloop run was already
+broken in that PR but nobody went over the results.
+
+```
+  Process terminated. Assertion failed.
+  !owningType.IsCanonicalSubtype(CanonicalFormKind.Any)
+     at System.Diagnostics.DebugProvider.Fail(String  String) + 0x37
+     at System.Diagnostics.Debug.Fail(String  String) + 0x49
+     at ILCompiler.DependencyAnalysis.TypeGenericDictionaryNode..ctor(TypeDesc  NodeFactory) + 0x4c
+
+...
+
+D:\a\_work\1\s\artifacts\bin\coreclr\windows.x64.Checked\build\Microsoft.NETCore.Native.targets(332 5): error MSB3073: The command ""D:\a\_work\1\s\artifacts\bin\coreclr\windows.x64.Checked\x64\ilc\\ilc" @"D:\a\_work\1\s\artifacts\obj\Microsoft.Extensions.Logging.Tests\Release\net11.0-windows\native\Microsoft.Extensions.Logging.Tests.ilc.rsp"" exited with code 57005. [D:\a\_work\1\s\src\libraries\Microsoft.Extensions.Logging\tests\Common\Microsoft.Extensions.Logging.Tests.csproj::TargetFramework=net11.0-windows]
+```
+
+This is because we're trying to obtain generic dictionaries of something
+in a canonical form from here. The callsite identifier parameter is not
+necessary when referencing from NonConcrete methods because we're not
+going to build an associated generic dictionary anyway.
+Adam Perlin,24/01/2026 1:14:39 am,[RyuJIT Wasm] Cast Operations Follow Up (#122862)
+
+This PR addresses some review feedback in #122301 and fills in more
+codegen for casts on Wasm.
+Notably:
+- Casts to and from all int types (byte  short) are now supported with
+proper sign extension
+- Some generic casting code  in particular `GenIntCastDesc` was moved
+out of ifdefs and adapted for Wasm to support this. We don't yet support
+containment of casts in loads (i.e.  the `GenIntCastDesc::LOAD_*` type
+casts).
+- float->int casts are implemented using the saturating non-trapping
+conversion instructions
+- This required changing the type of our Wasm opcodes to be 2 bytes
+instead of 1
+
+---------
+
+Co-authored-by: Katelyn Gadd <kg@luminance.org>
+Co-authored-by: Copilot <175728472+Copilot@users.noreply.github.com>
+Co-authored-by: SingleAccretion <62474226+SingleAccretion@users.noreply.github.com>
+Copilot,24/01/2026 1:00:56 am,Switch Windows build pools from VS2022 to VS2026 preview (#123551)
+
+## Description
+
+Updates Windows build pool images from VS2022 to VS2026 preview across
+CI pipelines  including main build infrastructure and stress test
+pipelines.
+
+## Changes
+
+- **`eng/pipelines/common/xplat-setup.yml`**:
+- Official builds: `windows.vs2022.amd64` →
+`windows.vs2026preview.scout.amd64`
+- Public builds: `windows.vs2022.amd64.open` →
+`windows.vs2026preview.scout.amd64.open`
+
+- **`eng/pipelines/libraries/fuzzing/deploy-to-onefuzz.yml`**:
+- Fuzzing jobs: `windows.vs2022.amd64` →
+`windows.vs2026preview.scout.amd64`
+
+- **`eng/pipelines/libraries/stress/ssl.yml`**:
+- SSL stress tests: `1es-windows-2022-open` →
+`windows.vs2026preview.scout.amd64.open`
+
+- **`eng/pipelines/libraries/stress/http.yml`**:
+- HTTP stress tests: `1es-windows-2022-open` →
+`windows.vs2026preview.scout.amd64.open`
+
+All VS2022 and 1es-windows-2022 image references in pipeline
+configurations have been migrated to the VS2026 preview scout image.
+
+<!-- START COPILOT ORIGINAL PROMPT -->
+
+
+
+<details>
+
+<summary>Original prompt</summary>
+
+> 
+> ----
+> 
+> *This section details on the original issue you should resolve*
+> 
+> <issue_title>Switch from VS2022 to VS2026 image</issue_title>
+> <issue_description>At least in main but probably also in
+release/10.0.</issue_description>
+> 
+> <agent_instructions>Let's start by changing the public and official
+build windows pools to windows.vs2026preview.scout.amd64. That should be
+found in eng/pipelines/common/xplat-setup.yml. We'll figure out whatever
+else is needed as we go.</agent_instructions>
+> 
+> ## Comments on the Issue (you are @copilot in this section)
+> 
+> <comments>
+> </comments>
+> 
+
+
+</details>
+
+
+
+<!-- START COPILOT CODING AGENT SUFFIX -->
+
+- Fixes dotnet/runtime#123550
+
+<!-- START COPILOT CODING AGENT TIPS -->
+---
+
+💬 We'd love your input! Share your thoughts on Copilot coding agent in
+our [2 minute survey](https://gh.io/copilot-coding-agent-survey).
+
+---------
+
+Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com>
+Co-authored-by: steveisok <471438+steveisok@users.noreply.github.com>
+Co-authored-by: hoyosjs <19413848+hoyosjs@users.noreply.github.com>
+Copilot,24/01/2026 12:59:45 am,Delete obsolete ETW logging scripts and update System.Net telemetry documentation (#123518)
+
+Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com>
+Co-authored-by: MihaZupan <25307628+MihaZupan@users.noreply.github.com>
+Co-authored-by: Miha Zupan <mihazupan.zupan1@gmail.com>
+Copilot,24/01/2026 12:37:30 am,Update Roslyn to 5.0.0-2.26070.104 and suppress IDE0071/IDE0031 (#123527)
+
+## Description
+
+Updates Roslyn to 5.0.0-2.26070.104 to match the 10.0.1xx SDK. The new
+analyzer version enforces IDE0071 and IDE0031 more strictly  causing
+build failures with `TreatWarningsAsErrors=true`.
+
+## Changes
+
+**eng/Versions.props**
+- Bump `MicrosoftCodeAnalysisVersion_LatestVS`: `4.14.0` →
+`5.0.0-2.26070.104`
+
+**.editorconfig** (global `[*.cs]` section)
+- Add `dotnet_diagnostic.IDE0071.severity = silent` - Suppresses false
+positives for `ReadOnlySpan<char>.ToString()` in string interpolations
+(required for netstandard targets where ReadOnlySpan cannot be directly
+interpolated)
+- Add `dotnet_diagnostic.IDE0031.severity = silent` - Suppresses null
+propagation suggestions
+
+Setting `silent` severity preserves IDE hints while preventing build
+errors.
+
+## Testing
+
+Resolves build failures in:
+- `System.Security.Cryptography.MLDsaCng.Windows.cs`
+- `System.Security.Cryptography.MLDsaImplementation.Windows.cs`  
+- `System.Reflection.Metadata.TypeNameParser.cs`
+
+<!-- START COPILOT ORIGINAL PROMPT -->
+
+
+
+<details>
+
+<summary>Original prompt</summary>
+
+> This is a port of PR #123509 from `release/10.0` to `main`.
+> 
+> ## Summary
+> Update `MicrosoftCodeAnalysisVersion_LatestVS` to match what is
+referenced in the 10.0.1xx SDK:
+>
+https://github.com/dotnet/sdk/blob/0b3258423a96e6b0e0582a31f09e10ce4478fc06/eng/Version.Details.xml#L95
+> 
+> ## Changes Required
+> 
+> ### 1. eng/Versions.props
+> Update the `MicrosoftCodeAnalysisVersion_LatestVS` property from
+`4.14.0` to `5.0.0-2.26070.104`:
+> 
+> ```xml
+> -
+<MicrosoftCodeAnalysisVersion_LatestVS>4.14.0</MicrosoftCodeAnalysisVersion_LatestVS>
+> +
+<MicrosoftCodeAnalysisVersion_LatestVS>5.0.0-2.26070.104</MicrosoftCodeAnalysisVersion_LatestVS>
+> ```
+> 
+> ### 2.
+src/libraries/Common/src/System/Security/Cryptography/MLDsaCng.Windows.cs
+> Add `#pragma warning disable/restore IDE0071` around the `Debug.Fail`
+call to fix ReadOnlySpan interpolation for netstandard targets:
+> 
+> ```csharp
+> +#pragma warning disable IDE0071
+>                     Debug.Fail(
+>                         $"{nameof(blobType)}: {blobType}  " +
+> $"{nameof(parameterSet)}: {parameterSet.ToString()}  " +
+> $"{nameof(keyBytes)}.Length: {keyBytes.Length} / {expectedKeySize}");
+> +#pragma warning restore IDE0071
+> ```
+> 
+> ### 3.
+src/libraries/Common/src/System/Security/Cryptography/MLDsaImplementation.Windows.cs
+> Same change - add `#pragma warning disable/restore IDE0071` around the
+`Debug.Fail` call:
+> 
+> ```csharp
+> +#pragma warning disable IDE0071
+>                     Debug.Fail(
+>                         $"{nameof(blobType)}: {blobType}  " +
+> $"{nameof(parameterSet)}: {parameterSet.ToString()}  " +
+> $"{nameof(keyBytes)}.Length: {keyBytes.Length} / {expectedKeySize}");
+> +#pragma warning restore IDE0071
+> ```
+> 
+> ### 4.
+src/libraries/System.Reflection.Metadata/src/System/Reflection/Metadata/TypeNameParser.cs
+> Add `#pragma warning disable/restore IDE0071` around the
+`Debug.Assert` call:
+> 
+> ```csharp
+> +#pragma warning disable IDE0071
+> Debug.Assert(parsedName.GetNodeCount() == recursiveDepth  $"Node count
+mismatch for '{typeName.ToString()}'");
+> +#pragma warning restore IDE0071
+> ```
+> 
+> ## Context
+> The newer version of Microsoft.CodeAnalysis (5.0.0-2.26070.104)
+introduces a new analyzer warning IDE0071 (redundant ToString() in
+string interpolation) that triggers on `ReadOnlySpan<char>.ToString()`
+calls in interpolated strings. However  for netstandard targets  these
+`.ToString()` calls are required because `ReadOnlySpan<char>` cannot be
+directly interpolated. The pragma warnings suppress this false positive
+while keeping the necessary `.ToString()` calls.
+> 
+> Related issue: https://github.com/dotnet/runtime/issues/123503
+
+
+</details>
+
+
+
+<!-- START COPILOT CODING AGENT SUFFIX -->
+
+*This pull request was created from Copilot chat.*
+>
+
+<!-- START COPILOT CODING AGENT TIPS -->
+---
+
+💡 You can make Copilot smarter by setting up custom instructions 
+customizing its development environment and configuring Model Context
+Protocol (MCP) servers. Learn more [Copilot coding agent
+tips](https://gh.io/copilot-coding-agent-tips) in the docs.
+
+---------
+
+Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com>
+Co-authored-by: agocke <515774+agocke@users.noreply.github.com>
+Miha Zupan,23/01/2026 10:32:11 pm,Use existing Base64 helpers for Base64FormattingOptions.InsertLineBreaks (#123403)
+David Wrighton,23/01/2026 10:31:43 pm,[clr-interp] Handle unmanaged thiscall on Windows Arm64 (#123519)
+
+Windows Arm64 has a peculiar calling convention for C++ member
+functions.
+
+Notably  the return buffer is passed as the second parameter to the
+method (not using the normal X8 return buffer argument)  and like other
+Windows platforms  the return buffer is needed for more forms of
+aggregates.
+
+---------
+
+Co-authored-by: Copilot <175728472+Copilot@users.noreply.github.com>
+Andy Ayers,23/01/2026 10:25:21 pm,[Wasm RyuJit] Fix emission of block and label instructions (#123522)
+
+We were dropping the type field.
+Michal Strehovský,23/01/2026 9:43:22 pm,Disable StringBuilder marshalling tests on native AOT (#123530)
+
+Test started running with https://github.com/dotnet/runtime/pull/123112
+
+Cc @dotnet/ilc-contrib
+Michal Strehovský,23/01/2026 9:42:24 pm,Mark new userevents tests as native AOT incompatible (#123541)
+
+These are all crashing:
+
+```
+11:31:58.741 Running test: tracing/userevents/custommetadata/custommetadata/custommetadata.cmd
+Unhandled exception. System.ArgumentNullException: Value cannot be null. (Parameter 'path1')
+   at System.ArgumentNullException.Throw(String)
+   at System.IO.Path.Combine(String  String  String)
+   at Tracing.UserEvents.Tests.Common.UserEventsTestRunner.ResolveRecordTracePath(String)
+   at Tracing.UserEvents.Tests.Common.UserEventsTestRunner.RunOrchestrator(String  String  Func`2  Int32  Int32)
+   at Tracing.UserEvents.Tests.CustomMetadata.CustomMetadata.Main(String[] args)
+```
+David Wrighton,23/01/2026 7:23:08 pm,[clr-interp] Fix jmp instruction to tolerate the call.tail opcode failing to actually tail call (#123513)
+
+call.tail in the interpreter isn't guaranteed to tail-call in some
+cases  so we need to put in a ret instruction after the tail-call to
+ensure that the runtime doesn't execute invalid code. The code for doing
+a ret is extracted into a helper routine  and now called from both the
+CEE_JMP and CEE_RET pathways. The only change made to the code was to
+unify where the ip adjustment was to not happen in the EmitRet logic and
+instead keep it all in the same place in CEE_RET handling case.
+
+This fixes these test cases on Windows Arm64
+JIT/Directed/pinvoke/jump
+JIT/Directed/pinvoke/tail_pinvoke
+Copilot,23/01/2026 4:57:36 pm,Fix hash collision in TypeMapLazyDictionary causing non-deterministic ArgumentException (#123502)
+
+## Description
+
+`TypeMapping.GetOrCreateExternalTypeMapping` threw non-deterministic
+`ArgumentException` when type names hashed to the same value. For
+example  `"Windows.Media.Devices.Core.FrameFlashControl"` and
+`"Windows.Security.Credentials.PasswordCredential"` produce identical
+`GetHashCode()` results  causing collision on insertion.
+
+Root cause: `LazyExternalTypeDictionary` used `Dictionary<int 
+DelayedType>` keyed by `string.GetHashCode()` instead of the string
+itself.
+
+This matches the collision-safe approach already used in
+`LazyProxyTypeDictionary` but simplified since external type mappings
+don't require multi-value support.
+
+The fix addresses a design issue where hash collisions could occur. The
+existing test coverage is sufficient to validate the behavior.
+
+---------
+
+Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com>
+Co-authored-by: AaronRobinsonMSFT <30635565+AaronRobinsonMSFT@users.noreply.github.com>
+Egor Bogatov,23/01/2026 4:22:10 pm,Add binary VN funcs to TryGetRangeFromAssertions (#123233)
+
+[diffs](https://dev.azure.com/dnceng-public/public/_build/results?buildId=1261349&view=ms.vss-build-web.run-extensions-tab)
+
+Fixes https://github.com/dotnet/runtime/issues/122288
+Also  enables more branch foldings based on assertions - basically 
+mimics what SSA-based GetRange does  but based only on VNs.
+
+I recommend reviewing with whitespaces disabled.
+Dong-Heon Jung,23/01/2026 4:20:58 pm,[clr-interp] Interpreter for ARM32 SOFTFP (#120688)
+
+Enable interpreter for arm32 softfp.
+- Implement Assemblies for args and return values
+- Fix some minor bugs
+- Tested with simple test cases
+Aaron R Robinson,23/01/2026 3:49:14 pm,Abstract away debug read/write channel. (#123196)
+
+Co-authored-by: Copilot <175728472+Copilot@users.noreply.github.com>
+Copilot,23/01/2026 3:47:06 pm,Remove unused code from CoreCLR utilcode (#123525)
+
+## Description
+
+Removes dead code from CoreCLR utilcode that has no callers in the
+codebase.
+
+### Changes
+
+- **`ClrVirtualAllocAligned`** - Removed function for aligned memory
+allocation (declaration in `utilcode.h`  implementation in `util.cpp`
+including UNIXTODO comment)
+- **`ConfigString`** - Removed configuration string wrapper class (never
+instantiated)
+- **`ConfigMethodSet`** - Removed configuration method set class with
+`init()` and two `contains()` overloads (never used)
+
+`ConfigDWORD` is preserved - it's actively used throughout the runtime.
+
+### Verification
+
+Grep confirms removed items exist only in their
+declaration/implementation sites. Build passes in Debug and Release
+configurations.
+
+---------
+
+Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com>
+Co-authored-by: adityamandaleeka <219224+adityamandaleeka@users.noreply.github.com>
+Alexander Köplinger,23/01/2026 3:31:59 pm,Remove System.ServiceModel.Primitives dependency (#123543)
+
+This was needed for Windows compat pack at some point but is not needed
+anymore.
+Jakob Botsch Nielsen,23/01/2026 2:23:16 pm,SPMI: Tolerate missing getContinuationType calls (#123536)
+
+The continuation type returned to the JIT by getContinuationType is more
+or less opaque. The only thing we need to do with that handle is embed
+it in the code stream.
+
+Teach SPMI to fake up a class handle instead of missing contexts when
+the continuation layout is not found. This is going to be a common
+scenario for async changes because any change resulting in new live
+state around an async call ends up requiring a different continuation
+type.
+Jiri Cincura ↹,23/01/2026 1:26:53 pm,Make order of generated logger items stable. (#123428)
+
+Emits generated classes for logging ordered for stable/deterministic
+build output.
+
+Fixes #119587.
+Copilot,23/01/2026 1:05:25 pm,Add tar tests for >8GB file entries using simulated streams (#123091)
+
+# Description
+
+Adds automated tests for tar archives with >8GB file entries using
+`SimulatedDataStream` and `ConnectedStreams` to avoid materializing
+large data. Previous manual tests required actual disk space and were
+unsuitable for CI.
+
+Tests use parallel writer/reader pattern where:
+- Writer task streams tar data via `SimulatedDataStream` (generates
+dummy data pattern without allocation)
+- Reader task consumes via `ConnectedStreams.CreateUnidirectional()`
+(in-memory pipe with bounded buffer)
+- No intermediate storage required  data flows directly between writer
+and reader
+
+Covers PAX and GNU formats at `LegacyMaxFileSize + 1` (8GB + 1) testing
+both sync and async APIs.
+
+# Customer Impact
+
+N/A - test infrastructure only. Enables CI validation of >8GB tar entry
+handling without resource constraints.
+
+# Regression
+
+No - this adds test coverage for existing functionality fixed in PR
+#88280.
+
+# Testing
+
+8 tests added (4 scenarios × 2 sync/async variants)  all passing in ~68
+seconds with no disk/memory overhead.
+
+# Risk
+
+Very low - test-only changes with no production code modifications.
+Added dependencies (`ArrayBuffer`  `MultiArrayBuffer`  `StreamBuffer`)
+are existing  stable utilities used by `ConnectedStreams`.
+
+<!-- START COPILOT ORIGINAL PROMPT -->
+
+
+
+<details>
+
+<summary>Original prompt</summary>
+
+> 
+> ----
+> 
+> *This section details on the original issue you should resolve*
+> 
+> <issue_title>Add tar test with custom stream that simulates
+reading/writing >8GB file entry</issue_title>
+> <issue_description>Follow up of PR
+https://github.com/dotnet/runtime/pull/88280 and specifically  follow-up
+of this commit:
+https://github.com/dotnet/runtime/pull/88280/commits/548200889cce7d5c1d31c41702246a480789e455
+> 
+> Need to create a test that actually runs in the CI that simulates
+writing and reading the long data section  but without torturing our CI
+machines' disk and memory.</issue_description>
+> 
+> <agent_instructions>Consider using
+src/libraries/System.Formats.Tar/tests/SimulatedDataStream.cs to
+simulate the large entry  ideally  write the code in such a way that
+does not require storing the entire tar archive on disk or in memory.
+> 
+> One thing that can help here is the ConnectedStreams test utility and
+run the writing and reading part in parallel.</agent_instructions>
+> 
+> ## Comments on the Issue (you are @copilot in this section)
+> 
+> <comments>
+> <comment_new><author>@</author><body>
+> Tagging subscribers to this area: @dotnet/area-system-formats-tar
+> See info in
+[area-owners.md](https://github.com/dotnet/runtime/blob/main/docs/area-owners.md)
+if you want to be subscribed.
+> <details>
+> <summary>Issue Details</summary>
+> <hr />
+> 
+> Follow up of PR https://github.com/dotnet/runtime/pull/88280 and
+specifically  follow-up of this commit:
+https://github.com/dotnet/runtime/pull/88280/commits/548200889cce7d5c1d31c41702246a480789e455
+> 
+> Need to create a test that actually runs in the CI that simulates
+writing and reading the long data section  but without torturing our CI
+machines' disk and memory.
+> 
+> <table>
+>   <tr>
+>     <th align="left">Author:</th>
+>     <td>carlossanlop</td>
+>   </tr>
+>   <tr>
+>     <th align="left">Assignees:</th>
+>     <td>-</td>
+>   </tr>
+>   <tr>
+>     <th align="left">Labels:</th>
+>     <td>
+> 
+> `test-enhancement`  `area-System.Formats.Tar`
+> 
+> </td>
+>   </tr>
+>   <tr>
+>     <th align="left">Milestone:</th>
+>     <td>Future</td>
+>   </tr>
+> </table>
+> </details></body></comment_new>
+> </comments>
+> 
+
+
+</details>
+
+
+
+<!-- START COPILOT CODING AGENT SUFFIX -->
+
+- Fixes dotnet/runtime#89037
+
+<!-- START COPILOT CODING AGENT TIPS -->
+---
+
+💬 We'd love your input! Share your thoughts on Copilot coding agent in
+our [2 minute survey](https://gh.io/copilot-coding-agent-survey).
+
+---------
+
+Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com>
+Co-authored-by: rzikm <32671551+rzikm@users.noreply.github.com>
+Co-authored-by: Radek Zikmund <r.zikmund.rz@gmail.com>
+Pavel Savara,23/01/2026 12:19:42 pm,[browser][coreCLR] HTTP and WS client implementation in JS (#123400)
+Viktor Hofer,23/01/2026 12:17:16 pm,Avoid C4319 build warnings in libunwind (#122179) (#123535)
+
+Forward port of https://github.com/dotnet/runtime/pull/122179 to fix the
+broken runtime build with VS 2026
+
+Co-authored-by: Miha Zupan <mihazupan.zupan1@gmail.com>
+Michal Strehovský,23/01/2026 12:16:37 pm,Update native AOT ActiveIssue on NegotiateAuthenticationTests (#123528)
+
+I originally saw crashes in Package_Unsupported_NTLM  but looks like
+everything crashes. So just disable on Linux in general. This time I'll
+actually run outerloop to verify :(
+Jaroslav Ruzicka,23/01/2026 12:16:22 pm,DI container should respect generic constraints when resolving single instance (#123255)
+
+fixes https://github.com/dotnet/runtime/issues/108874
+
+DI filters out open generics with incompatible constraints by default.
+However  if the most recently registered open generic has incompatible
+constraints  DI skips it during IEnumerable resolution and falls back to
+the previous compatible registration. If that earlier registration is
+compatible  DI caches it as the “last” valid one. As a result  when
+users resolve a service whose most recent implementation had
+incompatible constraints  but an earlier one was compatible  they
+receive an implementation that is not the last registered. This breaks
+the usual “last wins” rule of DI containers and can lead to confusing 
+nearly impossible to debug behaviour.
+
+---------
+
+Co-authored-by: Jaroslav Ruzicka <jruzicka@microsoft.com>
+Alexander Köplinger,23/01/2026 11:47:43 am,Run OneLocBuild and SourceIndex on schedule instead of every commit in runtime-official.yml (#123539)
+
+When we moved to assetless builds the time it took for runtime-official
+to execute got very short  which means we basically now run a build for
+~every commit that gets pushed.
+
+We don't need to do a OneLocBuild and SourceIndex all the time since
+those only update daily anyway  allowing us to save CI resources.
+Marek Fišera,23/01/2026 9:50:29 am,[browser] Check unique relative path for assemblies during build (#123341)
+Vladimir Sadov,23/01/2026 4:14:58 am,[RuntimeAsync] Stop emitting modreqs into signatures of async variants. (#123317)
+
+Re discussion in:
+https://github.com/dotnet/runtime/issues/122672#issuecomment-3692064969
+
+The `modreq`s were a somewhat convenient remnant from the experiment 
+but otherwise unnecessary.
+
+The convenient part was that async variants for `Task<int> M()` and
+`ValueTask<int> M()` with `modreq`s would have distinct signatures 
+which also would not match regular non-async methods  since we used open
+type in the `modreq`. (it might be possible to declare such signature in
+IL  but I am not sure if we would load it).
+
+Anyways  at this point `modreq`s are not strictly required  so with this
+change they will not be emitted.
+
+That leaves the issue with signature ambiguities. 
+
+The issue arises in various places where we match method overrides with
+their virtual bases  match implementing methods with interfaces  and so
+on. Method equality/equivalence in these areas is based on matching
+`MethodSignature` instances. They are roughly `{Name  Signature}` tuples
+with some support for generic substitution and efficient compares using
+memoized string hashes.
+Once we drop the `modreq`s from the signature of async variants  `{Name 
+Signature}` becomes potentially ambiguous  since we lose the information
+on:
+- whether the signature is for an async variant or not 
+(variants should not match with ordinary methods for
+overriding/implementing purposes)
+- whether the variant is for a Task or ValueTask - returning methods. 
+(`Task<int> M()` and `ValueTask<int> M()` can add `int M()` async
+variants into the same declared/lookup scope. They would need to be
+distinct when overriding/implementing)
+
+To deal with the ambiguities  we keep that information by adding
+`AsyncVariantKind` to the `MethodSignature` as in:
+```c
+    enum AsyncVariantKind
+    {
+        None      = 0   // this is not a signature of an async variant method
+        Task      = 1   // this is a signature of an async variant for a Task[<T>] returning method
+        ValueTask = 2   // this is a signature of an async variant for a ValueTask[<T>] returning method
+    };
+``` 
+  
+The matching kind is a prerequisite for two `MethodSignature`s to be
+considered `Equivalent` or `ExactlyEqual` for the purpose of overriding 
+hiding  implementing.
+
+---------
+
+Co-authored-by: Copilot <175728472+Copilot@users.noreply.github.com>
+Copilot,23/01/2026 1:00:33 am,Add package readmes to illink NuGet packages stating SDK-only support (#123505)
+
+## Description
+
+The `Microsoft.NET.ILLink` and `Microsoft.NET.ILLink.Tasks` NuGet
+packages are published but lack documentation indicating they're
+SDK-internal and unsupported for direct consumption.
+
+## Changes
+
+- **Added `PACKAGE.md` files** to both packages with clear "Do not
+directly reference this package" language matching other SDK-internal
+packages like `Microsoft.NETCore.App`
+- **Enabled package readme inclusion** by removing
+`EnableDefaultPackageReadmeFile=false` from `ILLink.Tasks.csproj` and
+adding `EnableDefaultPackageReadmeFile=true` to `Mono.Linker.csproj`
+- **Included trimming documentation links** for users who need guidance
+on proper trimming usage through the SDK
+
+Both readmes follow the standard repository PACKAGE.md structure with
+About  How to Use  Additional Documentation  and Feedback sections.
+
+<!-- START COPILOT ORIGINAL PROMPT -->
+
+
+
+<details>
+
+<summary>Original prompt</summary>
+
+> 
+> ----
+> 
+> *This section details on the original issue you should resolve*
+> 
+> <issue_title>Illink nuget packages should state support contract in
+package readme</issue_title>
+> <issue_description>The illink packages aren’t supported outside of use
+by the SDK. We should state that in the readme. </issue_description>
+> 
+> ## Comments on the Issue (you are @copilot in this section)
+> 
+> <comments>
+> </comments>
+> 
+
+
+</details>
+
+
+
+<!-- START COPILOT CODING AGENT SUFFIX -->
+
+- Fixes dotnet/runtime#123504
+
+<!-- START COPILOT CODING AGENT TIPS -->
+---
+
+💡 You can make Copilot smarter by setting up custom instructions 
+customizing its development environment and configuring Model Context
+Protocol (MCP) servers. Learn more [Copilot coding agent
+tips](https://gh.io/copilot-coding-agent-tips) in the docs.
+
+---------
+
+Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com>
+Co-authored-by: agocke <515774+agocke@users.noreply.github.com>

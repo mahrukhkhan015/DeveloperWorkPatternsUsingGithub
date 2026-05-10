@@ -1,0 +1,280 @@
+﻿@model WebApplication1.Models.DashboardViewModel
+
+@{
+    ViewData["Title"] = "View";
+}
+
+<div class="container-fluid g-0 py-4">
+
+
+    <!-- Error Modal -->
+    <div class="modal fade" id="errorModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        Error
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <p id="errorModalMessage" class="mb-0"></p>
+                </div>
+
+                <div class="modal-footer">
+                    <button id="btnCloseErrorModal" type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        Close
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    <!-- Heading -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <h1 class="display-5 fw-bold">
+            <i class="bi bi-github me-2"></i>
+            Empirical Analysis of Developer Work Patterns Using Github
+        </h1>
+    </div>
+
+   
+    <div class="card-glass mb-4">
+        <form method="get">
+            <div class="row g-3 align-items-center flex-nowrap">
+                <div class="col">
+                    <input id="repoInput" type="text"
+                           class="form-control whitetext form-control-lg"
+                           name="repo"
+                           placeholder="dotnet/runtime"
+                           />
+                </div>
+
+                <div class="col-md-2 d-grid">
+                    <button id="btnSubmit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-search"></i>
+                        Load Repo
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    @* data summary row *@
+    <div class="row g-4 mb-4">
+
+        <div class="col-md-4">
+            <div class="stat-box">
+                <i  class="bi bi-git fs-1"></i>
+                <h2 id="TotalCommits">@Model.TotalCommits</h2>
+                <p>Total Commits</p>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="stat-box">
+                <i class="bi bi-people fs-1"></i>
+
+                    <h2 id="TopContributors"> 0 </h2>
+
+                <p>Top Contributors</p>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="stat-box">
+                <i class="bi bi-clock-history fs-1"></i>
+
+                    <h2 id="RecentCommits"> 0 </h2>
+                <p>Recent Commits</p>
+            </div>
+        </div>
+
+    </div>
+    @* data summary row *@
+
+    @* visualization *@
+    <div class="row g-4">
+
+        <!-- Commits Per Day -->
+      <div class="col-12 col-lg-6">
+            <div class="card-glass h-100">
+
+                <h3 class="mb-3">
+                    <i class="bi bi-calendar3 me-2"></i>
+                    Commits Per Day
+                </h3>
+
+                <div class="chart-container mb-3">
+                    <canvas id="commitsChart"></canvas>
+                </div>
+
+                <div class="small text-muted">
+                    <ul class="mb-0">
+                        @if (Model.CommitsPerDay != null){
+                        @foreach (var item in Model.CommitsPerDay)
+                        {
+                            <li>
+                                <span class="fw-semibold">@item.Key</span>
+                                <span class="float-end">@item.Value commits</span>
+                            </li>
+                        }
+                        }
+                    </ul>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Commits Per Hour -->
+         <div class="col-12 col-lg-6">
+            <div class="card-glass h-100">
+
+                <h3 class="mb-3">
+                    <i class="bi bi-clock me-2"></i>
+                    Commits By Hour
+                </h3>
+
+                <div class="chart-container mb-3">
+                    <canvas id="commitsPerHourChart"></canvas>
+                </div>
+
+                <div class="small text-muted">
+                    <ul class="mb-0">
+                        @if(Model.CommitsPerHour != null)
+                        {
+                        @foreach (var item in Model.CommitsPerHour.OrderBy(x => x.Key))
+                        {
+                            <li>
+                                <span class="fw-semibold">@item.Key:00</span>
+                                <span class="float-end">@item.Value commits</span>
+                            </li>
+                        }
+                        }
+                    </ul>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    @* visualization *@
+
+
+    <div class="row g-4 mb-4">
+
+        <div class="col-md-4">
+            <div class="stat-box">
+                <i class="bi bi-calendar3 me-2"></i>
+                <h2 id="WeekdayCommits"> 0 </h2>
+                <p>Weekday Commits</p>
+                <h2 id="WeekdayCommitsAvg"> 0 </h2>
+                <p>Weekday Commits Average</p>
+                <h2 id="WeekdayCommitsPercent"> 0 </h2>
+                <p>Weekday Commits Percent</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-box">
+                <i class="bi bi-calendar3 me-2"></i>
+                <h2 id="WeekendCommits"> 0 </h2>
+                <p>Weekend Commits</p>
+                <h2 id="WeekendCommitsAvg"> 0 </h2>
+                <p>Weekend Commits Average</p>
+                <h2 id="WeekendCommitsPercent"> 0 </h2>
+                <p>Weekend Commits Percent</p>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="stat-box">
+                <i class="bi bi-clock-history fs-1"></i>
+                <h2 id="NightCommits"> 0 </h2>
+                <p>Night Commits</p>
+                <h2 id="NightCommitsPercent"> 0 </h2>
+                <p>Night Commits Percent</p>
+                <h2 id="DayCommits"> 0 </h2>
+                <p>Day Commits</p>
+                <h2 id="DayCommitsPercent"> 0 </h2>
+                <p>Day Commits Percent</p>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+@*
+
+
+<h3>Top Contributors</h3>
+<ul>
+    @foreach (var c in Model.TopContributors)
+    {
+        <li>@c.Author - @c.Count commits</li>
+    }
+</ul>
+
+<h3>Recent Commits</h3>
+<table>
+    <tr>
+        <th>Author</th>
+        <th>Message</th>
+        <th>Date</th>
+    </tr>
+@foreach (var c in Model.RecentCommits)
+{
+    <tr>
+        <td>@c.author_name</td>
+        <td>@c.commit_message</td>
+        <td>@c.commit_date</td>
+    </tr>
+}
+</table>
+
+</div> *@
+
+@section Scripts {
+    <!-- jQuery CDN -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="~/js/customJs/dashboard.js"></script>
+
+}
+@* <table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.commit_message)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.author_name)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.commit_date)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.commit_message)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.author_name)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.commit_date)
+            </td>
+            <td>
+                @Html.ActionLink("Edit", "Edit", new { /* id=item.PrimaryKey */ }) |
+                @Html.ActionLink("Details", "Details", new { /* id=item.PrimaryKey */ }) |
+                @Html.ActionLink("Delete", "Delete", new { /* id=item.PrimaryKey */ })
+            </td>
+        </tr>
+}
+    </tbody>
+@* </table> *@

@@ -1,0 +1,296 @@
+﻿/* =========================
+   PASTEL GITHUB DASHBOARD
+========================= */
+
+body {
+    background: linear-gradient(135deg, #eef6ff, #fdf2ff);
+    color: #334155;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    min-height: 100vh;
+}
+
+/* =========================
+   TYPOGRAPHY
+========================= */
+
+h1, h2, h3 {
+    font-weight: 700;
+    color: #475569;
+    margin-bottom: 20px;
+}
+
+.whitetext {
+    color: #475569;
+}
+
+.container,
+.dashboard-container {
+    padding: 30px;
+}
+
+/* =========================
+   GLASS CARDS
+========================= */
+
+.card-glass {
+    background: rgba(255, 255, 255, 0.65);
+    border: 1px solid rgba(255,255,255,0.6);
+    border-radius: 24px;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    padding: 25px;
+    box-shadow: 0 8px 30px rgba(148, 163, 184, 0.15);
+    transition: all 0.3s ease;
+}
+
+    .card-glass:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 14px 35px rgba(148, 163, 184, 0.22);
+    }
+
+    /* =========================
+   FORM
+========================= */
+
+    .card-glass form .row {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 15px;
+    }
+
+    .card-glass input {
+        min-width: 0;
+    }
+
+    .card-glass button {
+        white-space: nowrap;
+    }
+
+form {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 10px;
+}
+
+    form input[type="text"] {
+        flex: 1;
+        background: rgba(255,255,255,0.85);
+        border: 2px solid #dbeafe;
+        color: #334155;
+        padding: 14px 18px;
+        border-radius: 16px;
+        outline: none;
+        transition: 0.3s ease;
+        font-size: 20px;
+    }
+
+        form input[type="text"]:focus {
+            border-color: #93c5fd;
+            box-shadow: 0 0 0 5px rgba(147,197,253,0.25);
+        }
+
+    /* =========================
+   BUTTONS
+========================= */
+
+    form button,
+    .btn-primary {
+        background: linear-gradient(135deg, #93c5fd, #c4b5fd);
+        border: none;
+        color: #334155;
+        padding: 14px 24px;
+        border-radius: 16px;
+        font-weight: 700;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+.btn-group-lg {
+    --bs-btn-font-size: 1rem;
+}
+        form button:hover,
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(196,181,253,0.35);
+        }
+
+/* =========================
+   STAT BOXES
+========================= */
+
+.stat-box {
+    background: linear-gradient(145deg, #ffffff, #f8fafc);
+    border-radius: 24px;
+    padding: 30px;
+    text-align: center;
+    border: 1px solid rgba(255,255,255,0.8);
+    box-shadow: 0 8px 25px rgba(148, 163, 184, 0.15);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    height: 100%;
+    will-change: transform;
+}
+
+    .stat-box:hover {
+        transform: translateY(-5px);
+    }
+
+    .stat-box i {
+        font-size: 2rem;
+        color: #a78bfa;
+        margin-bottom: 15px;
+    }
+
+   /* .stat-box h2 {
+        font-size: 2.5rem;
+        margin: 0;
+        color: #6366f1;
+    }*/
+    .stat-box h2 {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 48px;
+        margin: 0;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .stat-box p {
+        margin-top: 10px;
+        color: #64748b;
+        font-size: 15px;
+    }
+
+/* =========================
+   LISTS
+========================= */
+
+ul {
+    list-style: none;
+    padding: 0;
+}
+
+    ul li {
+        background: rgba(255,255,255,0.7);
+        padding: 14px 18px;
+        margin-bottom: 12px;
+        border-radius: 16px;
+        border-left: 5px solid #c4b5fd;
+        transition: 0.3s ease;
+        color: #475569;
+        box-shadow: 0 4px 15px rgba(148,163,184,0.08);
+    }
+
+        ul li:hover {
+            transform: translateX(5px);
+            background: #ffffff;
+        }
+
+/* =========================
+   TABLE
+========================= */
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    overflow: hidden;
+    border-radius: 24px;
+    background: rgba(255,255,255,0.75);
+    box-shadow: 0 8px 30px rgba(148,163,184,0.12);
+}
+
+    table th {
+        background: linear-gradient(135deg, #bfdbfe, #ddd6fe);
+        color: #475569;
+        padding: 18px;
+        text-align: left;
+        font-size: 25px;
+        font-weight: 700;
+    }
+
+    table td {
+        padding: 18px;
+        border-bottom: 1px solid #e2e8f0;
+        color: #475569;
+    }
+
+    table tr:hover {
+        background: rgba(219,234,254,0.3);
+    }
+
+.row {
+    margin-top: 1.5rem !important;
+    margin-bottom: 1.5rem !important;
+}
+
+
+
+/* =========================
+   CHART CONTAINER
+========================= */
+
+.chart-container {
+    background: rgba(255,255,255,0.7);
+    border-radius: 24px;
+    padding: 25px;
+    margin-bottom: 100px;
+    box-shadow: 0 8px 25px rgba(148,163,184,0.12);
+}
+
+canvas {
+    width: 100% !important;
+    height: auto !important;
+}
+
+/* =========================
+   SCROLLBAR
+========================= */
+
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #c4b5fd;
+    border-radius: 20px;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media (max-width: 768px) {
+
+    form {
+        flex-direction: column;
+    }
+
+    table {
+        display: block;
+        overflow-x: auto;
+    }
+
+
+    .chart-container {
+        overflow-x: auto;
+    }
+
+    .card-glass form .row {
+        flex-wrap: wrap;
+    }
+
+    .card-glass ul li {
+        background: rgba(255,255,255,0.6);
+        border-left: 4px solid #c4b5fd;
+        padding: 10px 14px;
+        border-radius: 12px;
+        margin-bottom: 8px;
+        font-size: 14px;
+    }
+
+        .card-glass ul li:hover {
+            background: rgba(219,234,254,0.6);
+        }
+}
